@@ -1,3 +1,3 @@
 #!/bin/bash
-echo "Installing Puppeteer browsers..."
+echo "Installing Puppeteer bundled Chromium..."
 npx puppeteer install

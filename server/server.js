@@ -103,18 +103,18 @@ Write in professional tone, plain text, no markdown.
       .replace("{{{reportText}}}", formattedHTML);
 
     // --- Puppeteer launch using bundled Chromium ---
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--single-process",
-        "--no-zygote"
-      ],
-      executablePath: puppeteer.executablePath(),
-    });
+  const browser = await puppeteer.launch({
+  headless: true,
+  args: [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+    "--single-process",
+    "--no-zygote"
+  ],
+  executablePath: puppeteer.executablePath(), // ensures bundled Chromium is used
+});
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
