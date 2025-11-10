@@ -113,18 +113,19 @@ Write in professional tone, plain text, no markdown.
       .replace("{{{reportText}}}", formattedHTML);
 
     // ✅ Puppeteer fix for Render (downloads its own Chrome)
-    const browser = await puppeteer.launch({
-      headless: true,
-      executablePath: puppeteer.executablePath(),
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--single-process",
-        "--no-zygote",
-      ],
-    });
+  // ✅ Puppeteer launch fix for Render
+const browser = await puppeteer.launch({
+  headless: true,
+  args: [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+    "--single-process",
+    "--no-zygote"
+  ],
+});
+
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
