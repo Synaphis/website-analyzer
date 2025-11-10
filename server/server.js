@@ -14,9 +14,7 @@ const app = express();
 
 // ---------------- CORS ----------------
 // Temporary: allow all origins for testing
-app.use(cors({
-  origin: "*",
-}));
+app.use(cors({ origin: "*" }));
 
 app.use(express.json());
 
@@ -24,7 +22,29 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Helper: convert text → HTML
-function textToHTML(text) { /* keep your existing implementation */ }
+function textToHTML(text) { 
+  // Keep your existing implementation here
+  const lines = text.split("\n");
+  let html = "";
+  let inList = false;
+
+  for (let line of lines) {
+    line = line.trim();
+    if (!line) continue;
+
+    if (/^-/.test(line)) {
+      if (!inList) { html += "<ul>"; inList = true; }
+      html += `<li>${line.replace(/^- /, "")}</li>`;
+      continue;
+    }
+
+    if (inList) { html += "</ul>"; inList = false; }
+    html += `<p>${line}</p>`;
+  }
+
+  if (inList) html += "</ul>";
+  return html;
+}
 
 // ---------------- Routes ----------------
 
@@ -90,11 +110,13 @@ Write in professional tone, plain text, no markdown.
       .replace("{{date}}", new Date().toLocaleDateString())
       .replace("{{{reportText}}}", formattedHTML);
 
-    // Puppeteer on Render
+    // Puppeteer using Render's Chrome
     const browser = await puppeteer.launch({
       headless: true,
+      executablePath: process.env.CHROME_PATH || "/usr/bin/google-chrome",
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
+
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
 
