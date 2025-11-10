@@ -13,10 +13,9 @@ dotenv.config();
 const app = express();
 
 // ---------------- CORS ----------------
-// Allow local dev and deployed frontend (replace with actual frontend URL)
 const allowedOrigins = [
   "http://localhost:3000",
-  process.env.FRONTEND_URL, // e.g., https://your-frontend.vercel.app
+  process.env.FRONTEND_URL,
 ];
 
 app.use(cors({
@@ -31,56 +30,20 @@ app.use(cors({
 
 app.use(express.json());
 
-// ✅ ES module __dirname fix
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ---------------- Helper: Convert LLM text → clean HTML ----------------
-function textToHTML(text) {
-  const lines = text.split("\n");
-  let html = "";
-  let inList = false;
-
-  for (let line of lines) {
-    line = line.trim();
-    if (!line) continue;
-
-    // Remove Markdown formatting
-    line = line.replace(/\*\*(.*?)\*\*/g, "$1");
-    line = line.replace(/\*(.*?)\*/g, "$1");
-    line = line.replace(/`(.*?)`/g, "$1");
-
-    if (/^Client Information:/i.test(line)) continue;
-
-    if (/^(Executive Summary|SEO Findings|Accessibility Review|Performance Review|Critical Issues|Actionable Recommendations)/i.test(line)) {
-      if (inList) { html += "</ul>"; inList = false; }
-      html += `<h2>${line}</h2>`;
-      continue;
-    }
-
-    if (/^-/.test(line)) {
-      if (!inList) { html += "<ul>"; inList = true; }
-      html += `<li>${line.replace(/^- /, "")}</li>`;
-      continue;
-    }
-
-    if (inList) { html += "</ul>"; inList = false; }
-    html += `<p>${line}</p>`;
-  }
-
-  if (inList) html += "</ul>";
-  return html;
-}
+// Helper: convert text → HTML
+function textToHTML(text) { /* keep your existing implementation */ }
 
 // ---------------- Routes ----------------
 
-// Log requests (for debugging)
+// Log requests
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Origin: ${req.headers.origin}`);
   next();
 });
 
-// Route 1: Analyze website → JSON
 app.post("/analyze", async (req, res) => {
   try {
     const { url } = req.body;
@@ -94,7 +57,6 @@ app.post("/analyze", async (req, res) => {
   }
 });
 
-// Route 2: Generate PDF
 app.post("/report-pdf", async (req, res) => {
   try {
     const { data } = req.body;
@@ -133,21 +95,20 @@ Write in professional tone, plain text, no markdown.
 
     const templatePath = path.join(__dirname, "templates/report.html");
     let html = fs.readFileSync(templatePath, "utf8");
-
     html = html
       .replace("{{url}}", data.url)
       .replace("{{date}}", new Date().toLocaleDateString())
       .replace("{{{reportText}}}", formattedHTML);
 
-    const browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox"] });
+    // Puppeteer on Render
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
 
-    const pdfBuffer = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: { top: 0, bottom: 0, left: 0, right: 0 },
-    });
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, margin: { top: 0, bottom: 0, left: 0, right: 0 } });
 
     await browser.close();
 
@@ -161,6 +122,5 @@ Write in professional tone, plain text, no markdown.
   }
 });
 
-// ---------------- Start server ----------------
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`✅ Analyzer backend running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`✅ Analyzer backend running on port ${PORT}`));
