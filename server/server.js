@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import fs from "fs";
 import path from "path";
-import OpenAI from "openai";
+import OpenAI from "openai"; // still used as client wrapper
 import { analyzeWebsite } from "../lib/analyze.mjs";
 import { fileURLToPath } from "url";
 
@@ -11,9 +11,11 @@ const app = express();
 app.use(cors({ origin: "*" }));
 app.use(express.json());
 
+// --- ES module dirname fix ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// --- Helper: Convert plain text to simple HTML ---
 function textToHTML(text) {
   const lines = text.split("\n");
   let html = "";
@@ -22,24 +24,34 @@ function textToHTML(text) {
     line = line.trim();
     if (!line) continue;
     if (/^-/.test(line)) {
-      if (!inList) { html += "<ul>"; inList = true; }
+      if (!inList) {
+        html += "<ul>";
+        inList = true;
+      }
       html += `<li>${line.replace(/^- /, "")}</li>`;
       continue;
     }
-    if (inList) { html += "</ul>"; inList = false; }
+    if (inList) {
+      html += "</ul>";
+      inList = false;
+    }
     html += `<p>${line}</p>`;
   }
   if (inList) html += "</ul>";
   return html;
 }
 
-// Log requests
+// ---------------- ROUTES ----------------
+
+// Log all requests
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Origin: ${req.headers.origin}`);
+  console.log(
+    `[${new Date().toISOString()}] ${req.method} ${req.url} - Origin: ${req.headers.origin}`
+  );
   next();
 });
 
-// ✅ Analyze website route
+// --- Analyze website ---
 app.post("/analyze", async (req, res) => {
   try {
     const { url } = req.body;
@@ -53,18 +65,19 @@ app.post("/analyze", async (req, res) => {
   }
 });
 
-// ✅ Generate PDF route
+// --- Generate PDF ---
 app.post("/report-pdf", async (req, res) => {
   try {
     const { data } = req.body;
     if (!data) return res.status(400).json({ error: "Missing analysis JSON" });
 
     const prompt = `
-Write a professional website audit report based on this JSON:
+You are a professional website auditor.
+Write a detailed audit report based on this JSON:
 
 ${JSON.stringify(data, null, 2)}
 
-Sections:
+Include sections:
 Executive Summary
 SEO Findings
 Accessibility Review
@@ -72,18 +85,24 @@ Performance Review
 Critical Issues
 Actionable Recommendations
 
-Plain text, no markdown.
+Write in professional tone, plain text, no markdown.
 `;
 
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    // ✅ Use Hugging Face router endpoint
+    const client = new OpenAI({
+      baseURL: "https://router.huggingface.co/v1",
+      apiKey: process.env.HUGGINGFACE_API_KEY,
+    });
 
     const response = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "meta-llama/Llama-3.1-8B-Instruct:novita",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 1800,
     });
 
-    const reportText = response.choices?.[0]?.message?.content?.trim() || "No content generated.";
+    const reportText =
+      response.choices?.[0]?.message?.content?.trim() ||
+      "No content generated.";
     const formattedHTML = textToHTML(reportText);
 
     const templatePath = path.join(__dirname, "templates/report.html");
@@ -93,18 +112,18 @@ Plain text, no markdown.
       .replace("{{date}}", new Date().toLocaleDateString())
       .replace("{{{reportText}}}", formattedHTML);
 
-    // ✅ Launch Chrome correctly on Render and locally
+    // ✅ Puppeteer fix for Render (downloads its own Chrome)
     const browser = await puppeteer.launch({
       headless: true,
-      executablePath: puppeteer.executablePath(), // ✅ IMPORTANT FIX FOR RENDER
+      executablePath: puppeteer.executablePath(),
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
         "--disable-gpu",
         "--single-process",
-        "--no-zygote"
-      ]
+        "--no-zygote",
+      ],
     });
 
     const page = await browser.newPage();
@@ -113,22 +132,24 @@ Plain text, no markdown.
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
-      margin: { top: 0, bottom: 0, left: 0, right: 0 }
+      margin: { top: 0, bottom: 0, left: 0, right: 0 },
     });
 
     await browser.close();
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename=Website_Audit.pdf`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=Website_Audit.pdf`
+    );
     res.send(pdfBuffer);
-
   } catch (error) {
     console.error("PDF Generation Error:", error);
     res.status(500).json({ error: "Failed to generate PDF" });
   }
 });
 
-// ✅ Server start
+// --- Start server ---
 app.listen(process.env.PORT || 4000, () =>
   console.log("✅ Analyzer backend running")
 );
