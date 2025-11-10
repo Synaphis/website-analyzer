@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-npm install
+echo "📦 Installing Chrome for Puppeteer..."
 npx puppeteer browsers install chrome
