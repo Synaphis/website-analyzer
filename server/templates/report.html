@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', Arial, sans-serif; color: #222; }
+
+  /* FULL-PAGE COVER */
+  .cover {
+    width: 210mm;
+    height: 297mm; /* full A4 page height */
+    background-color: #000;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    page-break-after: always;
+  }
+
+  .cover-title { font-size: 48px; font-weight: 900; margin-bottom: 25px; letter-spacing: 1px; }
+  .cover-sub { font-size: 22px; opacity: 0.85; margin-bottom: 12px; }
+  .cover-footer {
+    position: absolute;
+    bottom: 40px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    opacity: 0.85;
+    padding: 0 40px;
+    color: #fff;
+  }
+
+  /* CONTENT PAGES */
+  .page {
+    width: 210mm;
+    padding: 50px 40px;
+    line-height: 1.7;
+    font-size: 14px;
+    color: #222;
+  }
+
+  h2 {
+    font-size: 24px;
+    color: #000;
+    margin-top: 50px;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 6px;
+  }
+
+  p { margin-bottom: 14px; line-height: 1.6; }
+  ul { margin: 10px 0 16px 25px; list-style-type: disc; }
+  li { margin-bottom: 8px; }
+
+  .footer {
+    margin-top: 60px;
+    text-align: center;
+    font-size: 12px;
+    color: #666;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 10px;
+  }
+
+  .page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="cover-title">Website Audit Report</div>
+  <div class="cover-sub">{{url}}</div>
+  <div class="cover-sub">Prepared by Synaphis</div>
+  <div class="cover-footer">
+    <span>Synaphis — Reimagining What's Possible.</span>
+    <span>Conducted {{date}}</span>
+  </div>
+</div>
+
+<div class="page">
+  {{{reportText}}}
+  <div class="footer">
+    © {{year}} Synaphis | www.synaphis.com
+  </div>
+</div>
+
+</body>
+</html>
