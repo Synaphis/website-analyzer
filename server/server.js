@@ -1,4 +1,4 @@
-import puppeteer from "puppeteer"; // full Puppeteer
+import puppeteer from "puppeteer";
 import express from "express";
 import cors from "cors";
 import fs from "fs";
@@ -39,12 +39,13 @@ app.use((req, res, next) => {
   next();
 });
 
+// Analyze website
 app.post("/analyze", async (req, res) => {
   try {
     const { url } = req.body;
     if (!url) return res.status(400).json({ error: "URL is required" });
 
-    const result = await analyzeWebsite(url, puppeteer); // pass Puppeteer instance
+    const result = await analyzeWebsite(url, puppeteer);
     res.json(result);
   } catch (error) {
     console.error("Analysis Error:", error);
@@ -52,6 +53,7 @@ app.post("/analyze", async (req, res) => {
   }
 });
 
+// Generate PDF report
 app.post("/report-pdf", async (req, res) => {
   try {
     const { data } = req.body;
@@ -74,7 +76,7 @@ Actionable Recommendations
 Write in professional tone, plain text, no markdown.
 `;
 
-    const client = new OpenAI({ apiKey: "YOUR_OPENAI_KEY" }); // direct API key
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
@@ -109,4 +111,4 @@ Write in professional tone, plain text, no markdown.
   }
 });
 
-app.listen(4000, () => console.log("✅ Analyzer backend running on port 4000"));
+app.listen(process.env.PORT || 4000, () => console.log("✅ Analyzer backend running"));
