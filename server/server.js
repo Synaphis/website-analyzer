@@ -1,6 +1,6 @@
 // backend/server/server.js
-import dotenv from "dotenv";
-dotenv.config();
+
+
 
 import puppeteer from "puppeteer";
 import express from "express";
