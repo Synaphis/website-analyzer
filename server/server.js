@@ -212,14 +212,11 @@ h2 { margin-top: 25px; border-left: 4px solid #007acc; padding-left: 10px; }
       .replace("{{date}}", new Date().toLocaleDateString())
       .replace("{{{reportText}}}", htmlContent);
 
-    const chromePath = path.join(__dirname, "chrome/chrome/linux-142.0.7444.61/chrome-linux64/chrome");
-    if (!fs.existsSync(chromePath)) throw new Error("Chromium not found!");
-
     browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      executablePath: chromePath,
-    });
+  headless: true,
+  args: ["--no-sandbox", "--disable-setuid-sandbox"],
+});
+
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: ["domcontentloaded", "networkidle0"] });
