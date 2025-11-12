@@ -212,10 +212,11 @@ h2 { margin-top: 25px; border-left: 4px solid #007acc; padding-left: 10px; }
       .replace("{{date}}", new Date().toLocaleDateString())
       .replace("{{{reportText}}}", htmlContent);
 
-    browser = await puppeteer.launch({
+  const browser = await puppeteer.launch({
   headless: true,
   args: ["--no-sandbox", "--disable-setuid-sandbox"],
 });
+
 
 
     const page = await browser.newPage();
