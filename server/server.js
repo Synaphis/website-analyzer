@@ -20,7 +20,6 @@ app.use(cors({ origin: FRONTEND }));
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Global safety for unhandled promise rejections
 process.on("unhandledRejection", (reason) => {
   console.warn("⚠️ Unhandled promise rejection:", reason);
 });
@@ -73,7 +72,7 @@ function textToHTML(text = "") {
   return html;
 }
 
-// ---------------- CHROME PATH RESOLUTION ----------------
+// ---------------- CHROME PATH ----------------
 function findLocalChrome() {
   try {
     const chromeRoot = path.resolve(process.cwd(), "chrome");
@@ -129,12 +128,12 @@ async function launchBrowser() {
         args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
       });
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) { /** ignore */ }
 
   throw new Error("Could not locate Chrome. Set CHROME_PATH or install Chrome into ./chrome.");
 }
 
-// ---------------- SAFE ANALYSIS ----------------
+// ---------------- SAFETY ANALYSIS ----------------
 async function safeAnalyzeWebsite(url) {
   try {
     const normalized = url.startsWith("http") ? url : `https://${url}`;
@@ -170,7 +169,6 @@ STRICT RULES:
 - NO markdown formatting at all.
 - NO asterisks (*), NO dashes (-), NO numbered lists.
 - Write in clean prose paragraphs.
-- Each section must be written as full sentences and explanations.
 - Keep tone formal, analytical, and business-friendly.
 - Use the JSON data exactly as given. Never invent numbers or facts.
 
@@ -186,14 +184,8 @@ Keyword Strategy
 Critical Issues
 Actionable Recommendations
 
-Each section should be written as full sentences, not lists.
-Explain what metrics mean, not just state them.
-Example: Instead of "Performance Score: 60", write:
-"The site received a performance score of 60, meaning loading times or rendering may need optimization."
-
 DISCLAIMER:
-This automated audit provides a high-level overview based on available data and may not capture all opportunities for optimization. For a more thorough analysis, tailored recommendations, and expert guidance, please contact the Synaphis team at sales@synaphis.com. Our team and SaaS solutions can help improve SEO, performance, accessibility, design, and overall digital presence.
-`;
+This automated audit provides a high-level overview based on available data and may not capture all opportunities for optimization. For a more thorough analysis, tailored recommendations, and expert guidance, please contact the Synaphis team at sales@synaphis.com.`;
 
 async function generateReportWithData(data) {
   const client = new OpenAI({
@@ -217,11 +209,11 @@ async function generateReportWithData(data) {
   const text = response.choices?.[0]?.message?.content?.trim();
   if (!text) throw new Error("LLM returned no report text");
 
-  console.log("LLM report text preview:", text.substring(0, 200));
+  console.log("LLM report preview:", text.substring(0, 200));
   return text;
 }
 
-// ---------------- PDF GENERATION ----------------
+// ---------------- PDF GENERATION (FIXED) ----------------
 app.post("/report-pdf", async (req, res) => {
   let browser = null;
   try {
@@ -266,15 +258,31 @@ h2 { margin-top: 25px; border-left: 4px solid #007acc; padding-left: 10px; }
 </html>`);
     }
 
-    let html = fs.readFileSync(templatePath, "utf8")
+    let finalHtml = fs.readFileSync(templatePath, "utf8")
       .replace("{{url}}", analysis.url)
       .replace("{{date}}", new Date().toLocaleDateString())
       .replace("{{{reportText}}}", htmlContent);
 
     browser = await launchBrowser();
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle2", timeout: 60000 });
+    console.log("✅ Browser launched:", await browser.version());
 
+    // 🚀 KEY FIX — NO external requests & no `networkidle2`
+    await page.setRequestInterception(true);
+    page.on("request", (req) => {
+      if (["image", "font", "stylesheet", "script"].includes(req.resourceType())) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
+    // Convert HTML into data URL and load it
+    const encoded = Buffer.from(finalHtml, "utf8").toString("base64");
+    await page.goto(`data:text/html;base64,${encoded}`, {
+      waitUntil: "load",
+      timeout: 60000,
+    });
 
     const pdfBuffer = await page.pdf({
       format: "A4",
