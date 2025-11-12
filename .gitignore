@@ -2,3 +2,4 @@ node_modules/
 chrome/
 node_modules/
 echo "server/.env" >> .gitignore
+server/.env
