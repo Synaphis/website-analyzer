@@ -19,8 +19,11 @@ dotenv.config({ path: path.resolve(__dirname, ".env") });
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 
-const FRONTEND = process.env.FRONTEND_URL || "*";
-app.use(cors({ origin: FRONTEND }));
+;
+
+const FRONTEND = process.env.FRONTEND_URL || "http://localhost:3000";
+app.use(cors({ origin: FRONTEND, methods: ["POST", "GET"] }));
+
 
 // ------------------------- TEXT TO HTML ----------------------------
 function textToHTML(text = "") {
@@ -224,10 +227,12 @@ h2 { margin-top: 25px; border-left: 4px solid #007acc; padding-left: 10px; }
       .replace("{{date}}", new Date().toLocaleDateString())
       .replace("{{{reportText}}}", htmlContent);
 
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
+   const browser = await puppeteer.launch({
+  headless: true,
+  args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  executablePath: path.join(__dirname, "chrome/chrome/linux-142.0.7444.61/chrome-linux64/chrome")
+});
+
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: ["domcontentloaded", "networkidle0"] });
