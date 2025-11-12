@@ -4,13 +4,14 @@
 <meta charset="UTF-8" />
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Inter', Arial, sans-serif; color: #222; }
+  body { font-family: 'Inter', Arial, sans-serif; color: #222; background: #f5f5f5; }
 
-  /* COVER PAGE */
+  /* ---------------- COVER PAGE ---------------- */
   .cover {
-    width: 213mm;
-    height: 297mm;
-    background: #000;
+    width: 100%;
+    max-width: 900px;           /* Prevent too wide on large screens */
+    height: 100vh;              /* Full viewport height */
+    background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);
     color: #fff;
     display: flex;
     flex-direction: column;
@@ -18,79 +19,111 @@
     align-items: center;
     text-align: center;
     page-break-after: always;
+    padding: 40px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    position: relative;
   }
 
-  .cover-title { font-size: 48px; font-weight: 900; margin-bottom: 15px; }
-  .cover-sub { font-size: 22px; opacity: .85; margin-bottom: 6px; }
+  .cover-title {
+    font-size: 52px;
+    font-weight: 900;
+    margin-bottom: 20px;
+    line-height: 1.2;
+  }
+
+  .cover-sub {
+    font-size: 26px;
+    opacity: 0.85;
+    margin-bottom: 6px;
+  }
 
   .cover-footer {
     position: absolute;
     bottom: 40px;
     width: 100%;
-    padding: 0 40px;
+    padding: 0 20px;
     font-size: 12px;
-    opacity: .85;
+    opacity: .75;
     display: flex;
     justify-content: space-between;
+    font-weight: 500;
   }
 
-  /* CONTENT PAGES */
+  /* ---------------- CONTENT PAGES ---------------- */
   .page {
-    width: 210mm;
-    padding: 80px 40px 45px 40px; /* top padding increased to push content down */
-    font-size: 14px;
-    line-height: 1.7;
+    width: 100%;
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 60px 50px;
+    background: #fff;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    font-size: 15px;
+    line-height: 1.8;
+    page-break-after: always;
   }
 
   h2 {
-    font-size: 24px;
-    margin-top: 40px;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
+    font-size: 26px;
+    margin-top: 50px;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
     border-bottom: 2px solid #e0e0e0;
-    page-break-inside: avoid; /* keep heading with content */
+    page-break-inside: avoid;
   }
 
   p {
-    margin-bottom: 12px;
-    orphans: 3; /* avoid splitting small paragraphs */
+    margin-bottom: 16px;
+    orphans: 3;
     widows: 3;
   }
 
   ul {
-    margin: 8px 0 16px 24px;
+    margin: 10px 0 20px 30px;
     list-style-type: disc;
-    page-break-inside: avoid; /* keep list together */
+    page-break-inside: avoid;
   }
 
   li {
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }
 
   .section {
-    page-break-inside: avoid; /* keep each section together */
+    page-break-inside: avoid;
     break-inside: avoid;
-    margin-bottom: 20px;
-    margin-top: 60px; /* extra spacing at top of each section */
+    margin-bottom: 40px;
+    padding: 15px 0;
+    border-left: 3px solid #e0e0e0;
+    padding-left: 15px;
   }
 
   .footer {
-    margin-top: 50px;
+    margin-top: 60px;
     font-size: 12px;
     color: #666;
-    border-top: 1px solid #e0e0e0;
-    padding-top: 12px;
+    padding-top: 15px;
     text-align: center;
   }
 
+  /* ---------------- RESPONSIVE ---------------- */
+  @media screen and (max-width: 1000px) {
+    .page {
+      width: 95%;
+      padding: 40px 25px;
+    }
+  }
 </style>
 </head>
 <body>
 
+<!-- ================= COVER PAGE ================= -->
 <div class="cover">
-  <div class="cover-title">Website, SEO & Social Audit Report</div>
-  <div class="cover-sub">{{url}}</div>
-  <div class="cover-sub">Prepared by Synaphis</div>
+  <div class="cover-title">Website, SEO & Social Analysis</div>
+   <div class="cover-sub">{{url}}</div>
+
+
+  
+
+
 
   <div class="cover-footer">
     <span>Synaphis — Reimagining What's Possible.</span>
@@ -98,14 +131,64 @@
   </div>
 </div>
 
+<!-- ================= CONTENT PAGE ================= -->
 <div class="page">
-  <!-- Each section should be wrapped with .section -->
   {{{reportText}}}
   
   <div class="footer">
     © 2025 Synaphis — All Rights Reserved
   </div>
 </div>
+
+<script>
+function textToHTML(text = "") {
+  const lines = text.split("\n");
+  let html = "";
+  let inList = false;
+
+  const headings = [
+    "Executive Summary",
+    "SEO Analysis",
+    "Accessibility Review",
+    "Performance Review",
+    "Social Media & Brand Presence",
+    "Visual & Design Assessment",
+    "Reputation & Trust Signals",
+    "Keyword Strategy",
+    "Critical Issues",
+    "Actionable Recommendations",
+  ];
+
+  for (let line of lines) {
+    line = line.trim();
+    if (!line) continue;
+
+    const isHeading = headings.find(h => line.toLowerCase().startsWith(h.toLowerCase()));
+    if (isHeading) {
+      if (inList) { html += "</ul>"; inList = false; }
+      html += `<div class="section"><h2>${line}</h2>`;
+      continue;
+    }
+
+    if (/^- /.test(line)) {
+      if (!inList) { html += "<ul>"; inList = true; }
+      html += `<li>${line.replace(/^- /, "")}</li>`;
+      continue;
+    }
+
+    if (inList) { html += "</ul>"; inList = false; }
+
+    line = line.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    line = line.replace(/\*(.*?)\*/g, "<em>$1</em>");
+
+    html += `<p>${line}</p>`;
+  }
+
+  if (inList) html += "</ul>";
+  html += "</div>"; // Close last section
+  return html;
+}
+</script>
 
 </body>
 </html>
