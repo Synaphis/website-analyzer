@@ -36,7 +36,7 @@ async function testHF() {
     });
 
     // Get website analysis JSON
-    const url = "https://www.allsaints.com/";
+    const url = "https://www.gymshark.com/";
     console.log(`✅ Getting analysis JSON for: ${url}`);
     const analysisJSON = await analyzeWebsite(url);
 

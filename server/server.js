@@ -168,8 +168,8 @@ Your job: Produce a polished, executive-quality website audit using only the inf
 STRICT RULES:
 - Use JSON data exactly as given. Do not invent numbers, facts, features, or results.
 - When data exists in the JSON, refer to it directly.
-- When data is missing or empty, do NOT say “missing,” “not found,” or “no data.”  
-  Instead, write naturally, using subtle and professional phrasing:
+- When data is missing or empty, do NOT say “missing,” “not found,” or “no data.”
+  Instead, use subtle and professional language:
   Examples:
   - “There may be opportunities to refine metadata for clarity and search visibility.”
   - “A more in-depth audit could reveal additional insights into user experience or structure.”
@@ -178,9 +178,10 @@ STRICT RULES:
 WRITING RULES:
 - No markdown formatting.
 - No asterisks (*), no bullet points, no numbered lists.
-- Write in clean, formal prose paragraphs.
+- No tables.
+- Write only in clean, formal prose paragraphs.
 - Tone: polished, analytical, business-friendly.
-- Output must be based ONLY on the JSON values provided.
+- Content must come ONLY from provided JSON.
 
 SECTIONS (in this exact order):
 Executive Summary
@@ -193,17 +194,6 @@ Reputation & Trust Signals
 Keyword Strategy
 Critical Issues
 Actionable Recommendations
-
-In each section:
-- Use the real data where available such as titles, descriptions, word count, performance score, social profiles, or detected links.
-- If a metric or field is missing, use subtle expert language as described above rather than explicitly calling it out.
-
-Example of correct handling when something is missing:
-Instead of “No social media profiles were found,” write:
-“The audit focuses primarily on on-site content, and a deeper review could help identify further channels for social engagement.”
-
-DISCLAIMER:
-This automated audit offers a high-level business and technical review based on available scan data. For a full professional audit with tailored strategy and implementation support, please contact at sales@synaphis.com.
 `;
 
 async function generateReportWithData(data) {
@@ -213,7 +203,18 @@ async function generateReportWithData(data) {
   });
 
   const model = process.env.HF_MODEL || "meta-llama/Llama-3.1-8B-Instruct:novita";
-  const userMessage = `Here is the analysis JSON: ${JSON.stringify(data)}`;
+
+  const userMessage = `
+Generate the full website audit using the required section structure.
+
+Use the JSON values directly and clearly in prose.
+If any category has limited information, apply subtle expert phrasing such as:
+"Additional analysis could reveal more insights."
+"Further review may help identify new opportunities."
+
+JSON Input:
+${JSON.stringify(data)}
+`;
 
   const response = await client.chat.completions.create({
     model,
@@ -223,6 +224,9 @@ async function generateReportWithData(data) {
     ],
     max_tokens: 6000,
     temperature: 0.1,
+    top_p: 1.0,
+    presence_penalty: 0,
+    frequency_penalty: 0,
   });
 
   const text = response.choices?.[0]?.message?.content?.trim();
@@ -231,6 +235,7 @@ async function generateReportWithData(data) {
   console.log("LLM report preview:", text.substring(0, 200));
   return text;
 }
+
 
 // ---------------- PDF GENERATION (FIXED) ----------------
 app.post("/report-pdf", async (req, res) => {
