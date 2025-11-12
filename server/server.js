@@ -1,253 +1,261 @@
-// server/server.js
 import dotenv from "dotenv";
-dotenv.config();
+
+
 
 import fs from "fs";
 import path from "path";
 import express from "express";
 import cors from "cors";
-import puppeteer from "puppeteer-core";
+import puppeteer from "puppeteer";
 import OpenAI from "openai";
 import { analyzeWebsite } from "../lib/analyze.mjs";
 import { fileURLToPath } from "url";
 
-const app = express();
-app.use(express.json());
-
-// Allow from all origins while testing. Change to your frontend in production.
-const FRONTEND = process.env.FRONTEND_URL || "*";
-app.use(cors({ origin: FRONTEND }));
-
-// ES module dirname fix
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Global safety: don't let unhandled rejections crash the process
-process.on("unhandledRejection", (reason) => {
-  console.warn("⚠️ Unhandled promise rejection:", reason);
-});
+dotenv.config({ path: path.resolve(__dirname, ".env") });
 
-// simple converter for LLM text -> minimal HTML
+const app = express();
+app.use(express.json({ limit: "10mb" }));
+
+const FRONTEND = process.env.FRONTEND_URL || "*";
+app.use(cors({ origin: FRONTEND }));
+
+// ------------------------- TEXT TO HTML ----------------------------
 function textToHTML(text = "") {
   const lines = text.split("\n");
   let html = "";
-  let inList = false;
+  let currentSection = "";
 
-  // Define major section headings
   const headings = [
     "Executive Summary",
-    "SEO Findings",
+    "SEO Analysis",
     "Accessibility Review",
     "Performance Review",
+    "Social Media & Brand Presence",
+    "Visual & Design Assessment",
+    "Reputation & Trust Signals",
+    "Keyword Strategy",
     "Critical Issues",
-    "Actionable Recommendations"
+    "Actionable Recommendations",
+    
   ];
 
   for (let line of lines) {
     line = line.trim();
     if (!line) continue;
 
-    // Check if the line is a major section heading
     const isHeading = headings.find(h => line.toLowerCase().startsWith(h.toLowerCase()));
     if (isHeading) {
-      if (inList) { html += "</ul>"; inList = false; }
-      // Add a page break for all headings except the first one
-      html += `<h2 class="page-break">${line}</h2>`;
+      if (currentSection) {
+        html += `<div class="section">${currentSection}</div>`;
+        currentSection = "";
+      }
+      currentSection += `<h2>${line}</h2>`;
       continue;
     }
 
-    // Detect lists
     if (/^- /.test(line)) {
-      if (!inList) { html += "<ul>"; inList = true; }
-      html += `<li>${line.replace(/^- /, "")}</li>`;
-      continue;
+      if (!currentSection.includes("<ul>")) currentSection += "<ul>";
+      currentSection += `<li>${line.replace(/^- /, "")}</li>`;
+    } else {
+      if (currentSection.includes("<ul>")) currentSection += "</ul>";
+      line = line.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+      line = line.replace(/\*(.*?)\*/g, "<em>$1</em>");
+      currentSection += `<p>${line}</p>`;
     }
-    if (inList) { html += "</ul>"; inList = false; }
-
-    // Convert markdown bold/italic to HTML
-    line = line.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-    line = line.replace(/\*(.*?)\*/g, "<em>$1</em>");
-
-    html += `<p>${line}</p>`;
   }
 
-  if (inList) html += "</ul>";
-
+  if (currentSection) html += `<div class="section">${currentSection}</div>`;
   return html;
 }
 
 
-// Log incoming requests
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Origin: ${req.headers.origin}`);
-  next();
-});
 
-// Utility: find chrome executable in ./chrome folder installed by render-build.sh
-function findLocalChrome() {
+// ----------------------- SAFE ANALYSIS -----------------------------
+async function safeAnalyzeWebsite(url) {
   try {
-    const chromeRoot = path.resolve(process.cwd(), "chrome");
-    if (!fs.existsSync(chromeRoot)) return null;
+    const normalized = url.startsWith("http") ? url : `https://${url}`;
+    const analysis = await analyzeWebsite(normalized);
 
-    // chrome folder contains a subfolder named 'chrome' and then a version folder
-    // pattern: chrome/chrome/<version>/chrome-linux64/chrome
-    const entries = fs.readdirSync(chromeRoot, { withFileTypes: true });
-    // look for 'chrome' directory (ppl using PUPPETEER_CACHE_DIR=./chrome produce chrome/chrome/...)
-    const chromeDir = entries.find(e => e.isDirectory() && e.name === "chrome") || entries.find(e => e.isDirectory());
-    if (!chromeDir) return null;
+    if (!analysis) throw new Error("Empty analysis result");
 
-    const chromeDirPath = path.join(chromeRoot, chromeDir.name);
-    // if this contains version directories, pick the first one
-    const versions = fs.readdirSync(chromeDirPath, { withFileTypes: true }).filter(d => d.isDirectory());
-    if (versions.length === 0) return null;
-    // try each version until we find the executable
-    for (const v of versions) {
-      const candidate = path.join(chromeDirPath, v.name, "chrome-linux64", "chrome");
-      if (fs.existsSync(candidate)) return candidate;
-      // some puppeteer versions might put it under chrome-mac/chrome or different names; skip those here
-    }
-    return null;
+    return analysis;
   } catch (err) {
-    console.warn("findLocalChrome error:", err?.message || err);
-    return null;
+    return {
+      url,
+      htmlMetrics: { title: "Analysis Failed", description: "", h1: null, wordCount: 0 },
+      metadata: { title: "Analysis Failed", description: "" },
+      keywords: [],
+      detectedLinks: {},
+      socialProfiles: {},
+      accessibility: { violations: 0, details: [] },
+      visualMetrics: {},
+      performance: { performanceScore: 0 },
+      reputation: {},
+      analyzedAt: new Date().toISOString(),
+      error: err.message
+    };
   }
 }
 
-async function launchBrowser() {
-  // 1) explicit env var override
-  const envPath = process.env.CHROME_PATH;
-  if (envPath && fs.existsSync(envPath)) {
-    console.log("Using CHROME_PATH from env:", envPath);
-    return puppeteer.launch({
-      executablePath: envPath,
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
-    });
-  }
+// ---------------------- ORIGINAL AUDIT PROMPT ----------------------
+const systemMessage = `
+You are a senior-level website audit engine with expertise in SEO, social media, accessibility, and web design.
 
-  // 2) local chrome installed during build into ./chrome
-  const localChrome = findLocalChrome();
-  if (localChrome) {
-    console.log("Using local chrome at:", localChrome);
-    return puppeteer.launch({
-      executablePath: localChrome,
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
-    });
-  }
+Your job: Produce a polished, executive-quality website audit.
 
-  // 3) fall back to puppeteer.executablePath() if available (rare with puppeteer-core)
-  try {
-    const exe = puppeteer.executablePath && typeof puppeteer.executablePath === "function" ? puppeteer.executablePath() : null;
-    if (exe && fs.existsSync(exe)) {
-      console.log("Using puppeteer.executablePath():", exe);
-      return puppeteer.launch({
-        executablePath: exe,
-        headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
-      });
-    }
-  } catch (e) {
-    // ignore
-  }
+STRICT RULES:
+- NO markdown formatting at all.
+- NO asterisks (*), NO dashes (-), NO numbered lists.
+- Write in clean prose paragraphs.
+- Each section must be written as full sentences and explanations.
+- Keep tone formal, analytical, and business-friendly.
+- Use the JSON data exactly as given. Never invent numbers or facts.
 
-  throw new Error("Could not locate Chrome executable. Set CHROME_PATH, or ensure the build step installed Chrome into ./chrome.");
+SECTIONS (final output must be EXACTLY in this order):
+Executive Summary
+SEO Analysis
+Accessibility Review
+Performance Review
+Social Media & Brand Presence
+Visual & Design Assessment
+Reputation & Trust Signals
+Keyword Strategy
+Critical Issues
+Actionable Recommendations
+
+Each section should be written as full sentences, not lists.
+Explain what metrics mean, not just state them.
+Example: Instead of "Performance Score: 60", write:
+"The site received a performance score of 60, meaning loading times or rendering may need optimization."
+
+DISCLAIMER:
+This automated audit provides a high-level overview based on available data and may not capture all opportunities for optimization. For a more thorough analysis, tailored recommendations, and expert guidance, please contact the Synaphis team at sales@synaphis.com. Our team and SaaS solutions can help improve SEO, performance, accessibility, design, and overall digital presence.
+`;
+
+// ------------------------ LLM GENERATION ---------------------------
+async function generateReportWithData(data) {
+  const client = new OpenAI({
+    baseURL: process.env.HF_ROUTER_BASEURL || "https://router.huggingface.co/v1",
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+
+  const model = process.env.HF_MODEL || "meta-llama/Llama-3.1-8B-Instruct:novita";
+
+  const userMessage = `Here is the analysis JSON: ${JSON.stringify(data)}`;
+
+  const response = await client.chat.completions.create({
+    model,
+    messages: [
+      { role: "system", content: systemMessage },
+      { role: "user", content: userMessage }
+    ],
+    max_tokens: 4000,
+    temperature: 0.1,
+  });
+
+  const text = response.choices?.[0]?.message?.content?.trim();
+  if (!text) throw new Error("LLM returned no report text");
+
+  return text;
 }
 
-// ----------------- /analyze -----------------
-app.post("/analyze", async (req, res) => {
+// ------------------------ PDF GENERATION ---------------------------
+app.post("/report-pdf", async (req, res) => {
+  let browser = null;
   try {
     const { url } = req.body;
     if (!url) return res.status(400).json({ error: "URL is required" });
 
-    // analyzeWebsite will attempt to use Puppeteer (bundled Chromium) internally
-    const result = await analyzeWebsite(url);
-    res.json(result);
-  } catch (err) {
-    console.error("Analysis Error:", err);
-    res.status(500).json({ error: err?.message || "Analysis failed" });
-  }
-});
+    const analysis = await safeAnalyzeWebsite(url);
+    const reportText = await generateReportWithData(analysis);
+let htmlContent = textToHTML(reportText);
 
-// ----------------- /report-pdf -----------------
-app.post("/report-pdf", async (req, res) => {
-  let browser;
-  try {
-    const { data } = req.body;
-    if (!data) return res.status(400).json({ error: "Missing analysis JSON" });
+// Append a guaranteed disclaimer section (server-side)
+// This ensures the disclaimer always appears even if the LLM omits it.
+const disclaimerPlain = `This automated audit provides a high-level overview based on available data and may not capture every opportunity for optimization. For a more thorough, tailored analysis and implementation support, Synaphis offers SaaS tools and expert consultancy. To explore deeper improvements to SEO, performance, accessibility, design, or overall digital strategy, please contact the Synaphis team at sales@synaphis.com.`;
 
-    const prompt = `
-You are a professional website auditor.
-Write a detailed audit report based on this JSON:
-
-${JSON.stringify(data, null, 2)}
-
-Include sections:
-Executive Summary
-SEO Findings
-Accessibility Review
-Performance Review
-Critical Issues
-Actionable Recommendations
-
-Write in professional tone, plain text, no markdown.
+const disclaimerHtml = `
+  <div class="section">
+    <h2>Disclaimer</h2>
+    <p>${disclaimerPlain}</p>
+  </div>
 `;
 
-    // Use OpenAI client but point to Hugging Face router via baseURL and HF key (you already used this)
-    const client = new OpenAI({
-      baseURL: process.env.HF_ROUTER_BASEURL || "https://router.huggingface.co/v1",
-      apiKey: process.env.HUGGINGFACE_API_KEY,
-    });
+// Ensure disclaimer renders last
+htmlContent = htmlContent + disclaimerHtml;
 
-    const model = process.env.HF_MODEL || "meta-llama/Llama-3.1-8B-Instruct:novita";
 
-    const response = await client.chat.completions.create({
-      model,
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 1800,
-    });
+    const templatesDir = path.join(__dirname, "templates");
+    const templatePath = path.join(templatesDir, "report.html");
 
-    const reportText = response.choices?.[0]?.message?.content?.trim() || "No content generated by LLM.";
-    const formattedHTML = textToHTML(reportText);
+    if (!fs.existsSync(templatesDir)) fs.mkdirSync(templatesDir, { recursive: true });
+    if (!fs.existsSync(templatePath)) {
+      fs.writeFileSync(
+        templatePath,
+        `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+body { font-family: Arial, sans-serif; margin: 40px; }
+h2 { margin-top: 25px; border-left: 4px solid #007acc; padding-left: 10px; }
+.page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+<h1>Website Audit Report</h1>
+<p><strong>URL:</strong> {{url}}</p>
+<p><strong>Date:</strong> {{date}}</p>
+<hr>
+{{{reportText}}}
+</body>
+</html>
+`
+      );
+    }
 
-    // load template and inject
-    const templatePath = path.join(__dirname, "../server/templates/report.html");
     let html = fs.readFileSync(templatePath, "utf8");
-    html = html.replace("{{url}}", data.url || "")
-               .replace("{{date}}", new Date().toLocaleDateString())
-               .replace("{{{reportText}}}", formattedHTML);
+    html = html
+      .replace("{{url}}", analysis.url)
+      .replace("{{date}}", new Date().toLocaleDateString())
+      .replace("{{{reportText}}}", htmlContent);
 
-    browser = await launchBrowser();
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
 
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
-
-    const pdfBuffer = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: { top: 0, bottom: 0, left: 0, right: 0 },
-    });
+    await page.setContent(html, { waitUntil: ["domcontentloaded", "networkidle0"] });
+    const pdf = await page.pdf({ format: "A4", printBackground: true });
 
     await browser.close();
-    browser = null;
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename=Website_Audit.pdf`);
-    res.send(pdfBuffer);
-  } catch (error) {
-    console.error("PDF Generation Error:", error);
-    if (browser) {
-      try { await browser.close(); } catch (e) { /* ignore */ }
-    }
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="website-audit-${new URL(url).hostname}.pdf"`
+    );
+    res.send(pdf);
+  } catch (err) {
+    if (browser) await browser.close();
     res.status(500).json({
       error: "Failed to generate PDF",
-      details: error?.message || String(error),
+      details: err.message
     });
   }
 });
 
-// small health endpoint so root returns JSON
-app.get("/", (_req, res) => res.json({ ok: true }));
+// -------------------------- HEALTH -------------------------------
+app.get("/health", (req, res) =>
+  res.json({ status: "ok", model: process.env.HF_MODEL || "default" })
+);
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`✅ Analyzer backend running on port ${PORT}`));
+app.listen(PORT, () =>
+  console.log(`✅ Server running on http://localhost:${PORT}`)
+);

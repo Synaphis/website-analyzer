@@ -6,67 +6,82 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Inter', Arial, sans-serif; color: #222; }
 
-  /* FULL-PAGE COVER */
+  /* COVER PAGE */
   .cover {
-    width: 215mm;
-    height: 297mm; /* full A4 page height */
-    background-color: #000;
+    width: 213mm;
+    height: 297mm;
+    background: #000;
     color: #fff;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     text-align: center;
-    position: relative;
     page-break-after: always;
   }
 
-  .cover-title { font-size: 48px; font-weight: 900; margin-bottom: 25px; letter-spacing: 1px; }
-  .cover-sub { font-size: 22px; opacity: 0.85; margin-bottom: 12px; }
+  .cover-title { font-size: 48px; font-weight: 900; margin-bottom: 15px; }
+  .cover-sub { font-size: 22px; opacity: .85; margin-bottom: 6px; }
+
   .cover-footer {
     position: absolute;
     bottom: 40px;
     width: 100%;
+    padding: 0 40px;
+    font-size: 12px;
+    opacity: .85;
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
-    opacity: 0.85;
-    padding: 0 40px;
-    color: #fff;
   }
 
   /* CONTENT PAGES */
   .page {
     width: 210mm;
-    padding: 50px 40px;
-    line-height: 1.7;
+    padding: 45px 40px;
     font-size: 14px;
-    color: #222;
+    line-height: 1.7;
   }
 
   h2 {
     font-size: 24px;
-    color: #000;
-    margin-top: 50px;
-    margin-bottom: 15px;
+    margin-top: 40px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
     border-bottom: 2px solid #e0e0e0;
-    padding-bottom: 6px;
+    page-break-inside: avoid; /* keep heading with content */
   }
 
-  p { margin-bottom: 14px; line-height: 1.6; }
-  ul { margin: 10px 0 16px 25px; list-style-type: disc; }
-  li { margin-bottom: 8px; }
+  p {
+    margin-bottom: 12px;
+    orphans: 3; /* avoid splitting small paragraphs */
+    widows: 3;
+  }
+
+  ul {
+    margin: 8px 0 16px 24px;
+    list-style-type: disc;
+    page-break-inside: avoid; /* keep list together */
+  }
+
+  li {
+    margin-bottom: 6px;
+  }
+
+  .section {
+    page-break-inside: avoid; /* keep each section together */
+    break-inside: avoid;
+    margin-bottom: 20px;
+  }
 
   .footer {
-    margin-top: 60px;
-    text-align: center;
+    margin-top: 50px;
     font-size: 12px;
     color: #666;
     border-top: 1px solid #e0e0e0;
-    padding-top: 10px;
+    padding-top: 12px;
+    text-align: center;
   }
 
-  .page-break { page-break-before: always; }
 </style>
 </head>
 <body>
@@ -75,6 +90,7 @@
   <div class="cover-title">Website Audit Report</div>
   <div class="cover-sub">{{url}}</div>
   <div class="cover-sub">Prepared by Synaphis</div>
+
   <div class="cover-footer">
     <span>Synaphis — Reimagining What's Possible.</span>
     <span>Conducted {{date}}</span>
@@ -82,9 +98,11 @@
 </div>
 
 <div class="page">
+  <!-- Each section should be wrapped with .section -->
   {{{reportText}}}
+  
   <div class="footer">
-    © {{2025}} Synaphis | www.synaphis.com
+    © 2025 Synaphis — All Rights Reserved
   </div>
 </div>
 

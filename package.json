@@ -7,6 +7,7 @@
     "start": "node server/server.js",
     "dev": "nodemon server/server.js",
     "postinstall": "./render-build.sh"
+    
   },
   "dependencies": {
     "@axe-core/puppeteer": "^4.11.0",
@@ -21,6 +22,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "json2csv": "^6.0.0-alpha.2",
     "lighthouse": "^13.0.1",
     "metascraper": "^5.49.5",
     "metascraper-author": "^5.49.5",
@@ -34,7 +36,7 @@
     "openai": "^6.8.1",
     "pdf-lib": "^1.17.1",
     "pdfkit": "^0.17.2",
-    "puppeteer-core": "^24.29.1",
+    "puppeteer": "^24.29.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "sentiment": "^5.0.2",
