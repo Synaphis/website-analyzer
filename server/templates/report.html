@@ -1,25 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Website Audit Report</title>
+<meta charset="UTF-8" />
 <style>
-  /* ---------------- GLOBAL ---------------- */
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { 
-    font-family: Arial, Helvetica, sans-serif; 
-    color: #222; 
-    background: #f5f5f5; 
-    line-height: 1.7; 
-    font-size: 16px; 
-  }
-  p { margin-bottom: 16px; widows: 3; orphans: 3; }
+  body { font-family: 'Inter', Arial, sans-serif; color: #222; background: #f5f5f5; }
 
   /* ---------------- COVER PAGE ---------------- */
   .cover {
     width: 100%;
-    max-width: 900px;
-    height: 100vh;
+    max-width: 900px;           /* Prevent too wide on large screens */
+    height: 100vh;              /* Full viewport height */
     background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);
     color: #fff;
     display: flex;
@@ -28,86 +19,83 @@
     align-items: center;
     text-align: center;
     page-break-after: always;
-    padding: 100px 40px 60px 40px;
+    padding: 40px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    position: relative;
   }
+
   .cover-title {
-    font-size: 60px;
+    font-size: 52px;
     font-weight: 900;
     margin-bottom: 20px;
     line-height: 1.2;
   }
+
   .cover-sub {
-    font-size: 30px;
+    font-size: 26px;
     opacity: 0.85;
-    margin-bottom: 20px;
+    margin-bottom: 6px;
   }
+
   .cover-footer {
     position: absolute;
     bottom: 40px;
     width: 100%;
     padding: 0 20px;
     font-size: 12px;
-    opacity: 0.75;
+    opacity: .75;
     display: flex;
     justify-content: space-between;
     font-weight: 500;
   }
 
-  /* ---------------- CONTENT PAGE ---------------- */
+  /* ---------------- CONTENT PAGES ---------------- */
   .page {
     width: 100%;
     max-width: 900px;
-    margin: 60px auto;
-    padding: 100px 50px 60px 50px;
+    margin: 40px auto;
+    padding: 60px 50px;
     background: #fff;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.1);
-    font-size: 16px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    font-size: 15px;
     line-height: 1.8;
     page-break-after: always;
   }
 
-  /* ---------------- SECTIONS ---------------- */
-  .section {
-    page-break-inside: avoid;
-    break-inside: avoid;
-    margin-bottom: 40px;
-    padding: 25px 30px;
-    border-left: 5px solid #007acc;
-    background-color: #fdfdfd;
-    border-radius: 12px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-  }
-
   h2 {
-    font-size: 32px;
+    font-size: 26px;
     margin-top: 50px;
-    margin-bottom: 20px;
+    margin-bottom: 18px;
     padding-bottom: 10px;
     border-bottom: 2px solid #e0e0e0;
-    color: #007acc;
     page-break-inside: avoid;
+  }
+
+  p {
+    margin-bottom: 16px;
+    orphans: 3;
+    widows: 3;
   }
 
   ul {
-    margin: 12px 0 24px 36px;
+    margin: 10px 0 20px 30px;
     list-style-type: disc;
     page-break-inside: avoid;
   }
 
-  li { margin-bottom: 10px; }
-
-  /* ---------------- DISCLAIMER ---------------- */
-  .disclaimer {
-    font-size: 14px;
-    color: #555;
-    background-color: #f0f4f8;
-    border-left: 5px solid #ff9900;
-    border-radius: 10px;
-    padding: 20px 25px;
-    margin-top: 40px;
+  li {
+    margin-bottom: 8px;
   }
 
-  /* ---------------- FOOTER ---------------- */
+  .section {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 40px;
+    padding: 15px 0;
+    border-left: 3px solid #e0e0e0;
+    padding-left: 15px;
+  }
+
   .footer {
     margin-top: 60px;
     font-size: 12px;
@@ -118,9 +106,10 @@
 
   /* ---------------- RESPONSIVE ---------------- */
   @media screen and (max-width: 1000px) {
-    .page { width: 95%; padding: 80px 25px 50px 25px; }
-    .section { padding: 20px 20px; }
-    .disclaimer { padding: 15px 20px; }
+    .page {
+      width: 95%;
+      padding: 40px 25px;
+    }
   }
 </style>
 </head>
@@ -129,9 +118,7 @@
 <!-- ================= COVER PAGE ================= -->
 <div class="cover">
   <div class="cover-title">Website, SEO & Social Analysis</div>
-  <div class="cover-sub">{{url}}</div>
-
-  <div class="cover-footer">
+   <div class="cover-footer">
     <span>Synaphis — Reimagining What's Possible.</span>
     <span>Conducted {{date}}</span>
   </div>
@@ -140,19 +127,61 @@
 <!-- ================= CONTENT PAGE ================= -->
 <div class="page">
   {{{reportText}}}
-
-  <!-- DISCLAIMER -->
-  <div class="disclaimer">
-    This automated audit provides a high-level overview based on available data and may not capture every opportunity for optimization. 
-    For a more thorough, tailored analysis and expert guidance, Synaphis offers SaaS tools and consultancy. 
-    To explore deeper improvements to SEO, performance, accessibility, design, or overall digital strategy, please contact the Synaphis team at sales@synaphis.com.
+  
+  <div class="footer">
+    © 2025 Synaphis — All Rights Reserved
   </div>
 </div>
 
-<!-- ================= FOOTER ================= -->
-<div class="footer">
-  © 2025 Synaphis — All Rights Reserved
-</div>
+<script>
+function textToHTML(text = "") {
+  const lines = text.split("\n");
+  let html = "";
+  let inList = false;
+
+  const headings = [
+    "Executive Summary",
+    "SEO Analysis",
+    "Accessibility Review",
+    "Performance Review",
+    "Social Media & Brand Presence",
+    "Visual & Design Assessment",
+    "Reputation & Trust Signals",
+    "Keyword Strategy",
+    "Critical Issues",
+    "Actionable Recommendations",
+  ];
+
+  for (let line of lines) {
+    line = line.trim();
+    if (!line) continue;
+
+    const isHeading = headings.find(h => line.toLowerCase().startsWith(h.toLowerCase()));
+    if (isHeading) {
+      if (inList) { html += "</ul>"; inList = false; }
+      html += `<div class="section"><h2>${line}</h2>`;
+      continue;
+    }
+
+    if (/^- /.test(line)) {
+      if (!inList) { html += "<ul>"; inList = true; }
+      html += `<li>${line.replace(/^- /, "")}</li>`;
+      continue;
+    }
+
+    if (inList) { html += "</ul>"; inList = false; }
+
+    line = line.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    line = line.replace(/\*(.*?)\*/g, "<em>$1</em>");
+
+    html += `<p>${line}</p>`;
+  }
+
+  if (inList) html += "</ul>";
+  html += "</div>"; // Close last section
+  return html;
+}
+</script>
 
 </body>
 </html>

@@ -28,7 +28,7 @@ process.on("unhandledRejection", (reason) => {
 function textToHTML(text = "") {
   const lines = text.split("\n");
   let html = "";
-  let inList = false;
+  let currentSection = "";
 
   const headings = [
     "Executive Summary",
@@ -41,6 +41,7 @@ function textToHTML(text = "") {
     "Keyword Strategy",
     "Critical Issues",
     "Actionable Recommendations",
+    
   ];
 
   for (let line of lines) {
@@ -49,26 +50,26 @@ function textToHTML(text = "") {
 
     const isHeading = headings.find(h => line.toLowerCase().startsWith(h.toLowerCase()));
     if (isHeading) {
-      if (inList) { html += "</ul>"; inList = false; }
-      html += `<h2 class="page-break">${line}</h2>`;
+      if (currentSection) {
+        html += `<div class="section">${currentSection}</div>`;
+        currentSection = "";
+      }
+      currentSection += `<h2>${line}</h2>`;
       continue;
     }
 
     if (/^- /.test(line)) {
-      if (!inList) { html += "<ul>"; inList = true; }
-      html += `<li>${line.replace(/^- /, "")}</li>`;
-      continue;
+      if (!currentSection.includes("<ul>")) currentSection += "<ul>";
+      currentSection += `<li>${line.replace(/^- /, "")}</li>`;
+    } else {
+      if (currentSection.includes("<ul>")) currentSection += "</ul>";
+      line = line.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+      line = line.replace(/\*(.*?)\*/g, "<em>$1</em>");
+      currentSection += `<p>${line}</p>`;
     }
-
-    if (inList) { html += "</ul>"; inList = false; }
-
-    line = line.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-    line = line.replace(/\*(.*?)\*/g, "<em>$1</em>");
-
-    html += `<p>${line}</p>`;
   }
 
-  if (inList) html += "</ul>";
+  if (currentSection) html += `<div class="section">${currentSection}</div>`;
   return html;
 }
 
