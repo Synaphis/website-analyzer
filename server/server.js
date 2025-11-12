@@ -273,7 +273,8 @@ h2 { margin-top: 25px; border-left: 4px solid #007acc; padding-left: 10px; }
 
     browser = await launchBrowser();
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    await page.setContent(html, { waitUntil: "networkidle2", timeout: 60000 });
+
 
     const pdfBuffer = await page.pdf({
       format: "A4",
