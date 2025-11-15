@@ -94,7 +94,7 @@ ${safeJSON}
     console.log("✅ Sending JSON to HuggingFace LLM...");
 
     const chatCompletion = await client.chat.completions.create({
-      model: "moonshotai/Kimi-K2-Instruct-0905:groq",
+      model: "meta-llama/Llama-3.1-8B-Instruct:novita",
       messages: [
         { role: "system", content: systemMessage },
         { role: "user", content: userMessage }
