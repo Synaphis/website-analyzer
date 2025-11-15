@@ -45,16 +45,20 @@ async function testHF() {
    
 const systemMessage = `
 You are a senior digital strategy, marketing, and web audit analyst.
-Produce a professional, executive-friendly report based on the JSON summary.
+Produce a professional, executive-friendly report based ONLY on the provided JSON.
+Purpose: Convert raw website scan data into a clear, persuasive, and actionable digital business snapshot that shows what the business does, its website performance, technologies used, SEO, content, competitors, and overall online presence. The report should help with instant lead generation.
 
-Rules:
-- Use the JSON as a foundation but infer missing insights logically.
-- Do not output raw JSON or list keywords.
-- Focus on SEO, social media, website performance, brand recognition, and competitiveness.
-- Highlight opportunities to improve client acquisition and engagement.
-- Use headings and plain text paragraphs only.
+Hard rules:
+- Use the exact section headings and order below. Do not add, remove, rename, or reorder headings.
+- Each heading must appear on its own line followed by a plain-text paragraph (no bullets, tables, markdown).
+- Use only the JSON. Never claim to have visited or crawled the live site or used external sources.
+- If you infer any insight not directly present, mark it inline as: INFERRED (confidence: XX%) with a brief explanation if needed.
+- Numeric estimates must include value and confidence inline, e.g., (~31, confidence 78%).
+- Do not exaggerate performance, traffic, or impact. Be optimistic but accurate within the data and inferences.
+- If data completeness < 20% start with: "Partial scan — high uncertainty."
+- Keep tone professional, factual, and actionable, suitable for leads.
 
-Sections (in order):
+Sections (exact, in order):
 Executive Summary
 SEO Analysis
 Accessibility Review
@@ -68,12 +72,16 @@ Actionable Recommendations
 `;
 
 
+
 const userMessage = `
-Generate a digital impact analysis report from the JSON below.
-Keep the section structure and use plain text paragraphs only (no bullets, tables, or markdown).
-Do not mention missing or null fields. Infer business type, products/services, market positioning, and competitiveness.
-Focus on SEO, social media, website effectiveness, brand recognition, visitor conversion, and overall digital impact.
-Provide actionable insights to improve client acquisition and online presence.
+Generate a digital impact and business insight report from the JSON below.
+Use only the provided JSON. Do not output raw JSON, bullets, lists, tables, or markdown.
+Keep the headings exactly as listed in the system message, each followed by a plain-text paragraph only.
+Do not claim external knowledge; base all statements solely on JSON.
+If you make inferences, label them inline as INFERRED (confidence: XX%) and provide numeric estimates with confidence inline.
+Focus on revealing the business model, products/services, website effectiveness, technology stack, SEO, content, online presence, competitors, and overall digital health. Provide actionable insights for client acquisition and online presence improvement.
+Do not exaggerate or make claims beyond what the data and logical inference support.
+If data completeness < 20%, start with "Partial scan — high uncertainty."
 
 JSON:
 ${safeJSON}
@@ -82,10 +90,11 @@ ${safeJSON}
 
 
 
+
     console.log("✅ Sending JSON to HuggingFace LLM...");
 
     const chatCompletion = await client.chat.completions.create({
-      model: "meta-llama/Llama-3.1-8B-Instruct:novita",
+      model: "moonshotai/Kimi-K2-Instruct-0905:groq",
       messages: [
         { role: "system", content: systemMessage },
         { role: "user", content: userMessage }

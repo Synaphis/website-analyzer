@@ -183,40 +183,33 @@ async function safeAnalyzeWebsite(url) {
 
 // ---------------- LLM REPORT GENERATION ----------------
 const systemMessage = `
-You are a senior-level online presence & performance audit engine with expertise in website, SEO, social media, accessibility, performance, design, and brand trust.
+You are a senior digital strategy, marketing, and web audit analyst.
+Produce a professional, executive-friendly report based ONLY on the provided JSON.
+Purpose: Convert raw website scan data into a clear, persuasive, and actionable digital business snapshot that shows what the business does, its website performance, technologies used, SEO, content, competitors, and overall online presence. The report should help with instant lead generation.
 
-Your job: Produce a polished, executive-quality online presence & performanc audit using only the information in the analysis JSON.
+Hard rules:
+- Use the exact section headings and order below. Do not add, remove, rename, or reorder headings.
+- Each heading must appear on its own line followed by a plain-text paragraph (no bullets, tables, markdown).
+- Use only the JSON. Never claim to have visited or crawled the live site or used external sources.
+- If you infer any insight not directly present, mark it inline as: INFERRED (confidence: XX%) with a brief explanation if needed.
+- Numeric estimates must include value and confidence inline, e.g., (~31, confidence 78%).
+- Do not exaggerate performance, traffic, or impact. Be optimistic but accurate within the data and inferences.
+- If data completeness < 20% start with: "Partial scan — high uncertainty."
+- Keep tone professional, factual, and actionable, suitable for leads.
 
-STRICT RULES:
-- Use JSON data exactly as given. Do not invent numbers, facts, features, or results.
-- When data exists in the JSON, refer to it directly.
-- When data is missing or empty, do NOT say “missing,” “not found,” or “no data.”
-  Instead, use subtle and professional language:
-  Examples:
-  - “There may be opportunities to refine metadata for clarity and search visibility.”
-  - “A more in-depth audit could reveal additional insights into user experience or structure.”
-  - “Further review may help uncover expanded opportunities for brand engagement.”
-
-WRITING RULES:
-- No markdown formatting.
-- No asterisks (*), no bullet points, no numbered lists.
-- No tables.
-- Write only in clean, formal prose paragraphs.
-- Tone: polished, analytical, business-friendly.
-- Content must come ONLY from provided JSON.
-
-SECTIONS (in this exact order):
+Sections (exact, in order):
 Executive Summary
 SEO Analysis
 Accessibility Review
 Performance Review
-Social Media & Brand Presence
-Visual & Design Assessment
-Reputation & Trust Signals
+Social Media and Brand Presence
+Visual and Design Assessment
+Reputation and Trust Signals
 Keyword Strategy
 Critical Issues
 Actionable Recommendations
 `;
+
 
 async function generateReportWithData(data) {
   const client = new OpenAI({
@@ -224,19 +217,22 @@ async function generateReportWithData(data) {
     apiKey: process.env.OPENAI_API_KEY,
   });
 
-  const model = process.env.HF_MODEL || "meta-llama/Llama-3.1-8B-Instruct:novita";
+  const model = process.env.HF_MODEL || "moonshotai/Kimi-K2-Instruct-0905:groq";
 
-  const userMessage = `
-Generate the full online presence & performance audit using the required section structure.
+const userMessage = `
+Generate a digital impact and business insight report from the JSON below.
+Use only the provided JSON. Do not output raw JSON, bullets, lists, tables, or markdown.
+Keep the headings exactly as listed in the system message, each followed by a plain-text paragraph only.
+Do not claim external knowledge; base all statements solely on JSON.
+If you make inferences, label them inline as INFERRED (confidence: XX%) and provide numeric estimates with confidence inline.
+Focus on revealing the business model, products/services, website effectiveness, technology stack, SEO, content, online presence, competitors, and overall digital health. Provide actionable insights for client acquisition and online presence improvement.
+Do not exaggerate or make claims beyond what the data and logical inference support.
+If data completeness < 20%, start with "Partial scan — high uncertainty."
 
-Use the JSON values directly and clearly in prose.
-If any category has limited information, apply subtle expert phrasing such as:
-"Additional analysis could reveal more insights."
-"Further review may help identify new opportunities."
-
-JSON Input:
-${JSON.stringify(data)}
+JSON:
+${safeJSON}
 `;
+
 
   const response = await client.chat.completions.create({
     model,
@@ -337,10 +333,12 @@ async function processReportAndEmail(payload) {
     htmlContent += `
       <div class="section">
         <h2>Disclaimer</h2>
-        <p>This automated audit provides a high-level overview based on available data and may not capture every
-opportunity for optimization. For a more thorough, tailored analysis and implementation support, Synaphis offers
-SaaS tools and expert consultancy. To explore deeper improvements to SEO, performance, accessibility, design, or
-overall digital strategy, please contact at sales@synaphis.com.</p>
+        <p>This automated audit provides a quick snapshot based on limited metrics 
+        and may not capture every optimization opportunity. For a more comprehensive, 
+        tailored and hands-on support, Synaphis offers expert consultancy and SaaS tools. 
+        To explore deeper improvements in SEO, performance, accessibility, design, or overall digital strategy,
+         please contact us at sales@synaphis.com.</p>
+
       </div>
     `;
 
