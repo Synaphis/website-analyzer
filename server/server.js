@@ -395,6 +395,8 @@ The Synaphis Team
         {
           filename,
           content: pdfBuffer.toString("base64"), // Resend now uses base64
+          type: "application/pdf",               // MIME type
+          encoding: "base64"                     // specify base64 encoding
         },
       ],
     });
